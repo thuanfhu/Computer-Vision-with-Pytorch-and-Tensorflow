@@ -21,16 +21,16 @@ This comprehensive, practice-first course takes you from absolute Python basics 
 
 | Chapter | Title & Duration                                                                                             |
 | ------: | ------------------------------------------------------------------------------------------------------------ |
-|       1 | **Python Prerequisites: From Syntax to OOP & Data Science** — 11h 52m                                        |
-|       2 | **Deep Learning Foundations: ANN, Optimizers & Math** — 6h 23m                                               |
-|       3 | **Computer Vision with OpenCV (OpenCV with Python)** — 9h 41m                                                |
-|       4 | **Mastering PyTorch: Tensors to Custom Neural Networks** — 10h 34m                                           |
-|       5 | **Deployment & Visualization: Gradio & CNN Internals** — 2h 03m                                              |
-|       6 | **Advanced Image Classification Architectures (LeNet to ResNet)** — 3h 57m                                   |
-|       7 | **Data Augmentation Strategies** — 0h 30m                                                                    |
-|       8 | **Mastering Object Detection: YOLO, R-CNN & Detectron2** — 3h 47m                                            |
-|       9 | **Mastering Image Segmentation: UNet & Mask-RCNN** — 4h 55m                                                  |
-|      10 | **Capstone Project: YOLO Powered Image Search Application** — 5h 28m                                         |
+|       1 | **Python Prerequisites: From Syntax to OOP & Data Science** - 11h 52m                                        |
+|       2 | **Deep Learning Foundations: ANN, Optimizers & Math** - 6h 23m                                               |
+|       3 | **Computer Vision with OpenCV (OpenCV with Python)** - 9h 41m                                                |
+|       4 | **Mastering PyTorch: Tensors to Custom Neural Networks** - 10h 34m                                           |
+|       5 | **Deployment & Visualization: Gradio & CNN Internals** - 2h 03m                                              |
+|       6 | **Advanced Image Classification Architectures (LeNet to ResNet)** - 3h 57m                                   |
+|       7 | **Data Augmentation Strategies** - 0h 30m                                                                    |
+|       8 | **Mastering Object Detection: YOLO, R-CNN & Detectron2** - 3h 47m                                            |
+|       9 | **Mastering Image Segmentation: UNet & Mask-RCNN** - 4h 55m                                                  |
+|      10 | **Capstone Project: YOLO Powered Image Search Application** - 5h 28m                                         |
 
 ---
 
@@ -101,7 +101,14 @@ This comprehensive, practice-first course takes you from absolute Python basics 
 
 ## 🧰 Tech & Features You’ll Use
 
-**Python 3** (OOP, Scripting) • **Data Science** (Numpy, Pandas) • **Deep Learning** (PyTorch, ANN, CNN) • **Computer Vision** (OpenCV, Pillow) • **Object Detection** (YOLOv11, Faster R-CNN, Detectron2) • **Segmentation** (UNet, Mask-RCNN) • **Deployment** (Gradio, Streamlit, Hugging Face) • **Augmentation** (Albumentations).
+• **Python 3** (OOP, Scripting) 
+• **Data Science** (Numpy, Pandas) 
+• **Deep Learning** (PyTorch, ANN, CNN) 
+• **Computer Vision** (OpenCV, Pillow) 
+• **Object Detection** (YOLOv11, Faster R-CNN, Detectron2) 
+• **Segmentation** (UNet, Mask-RCNN) 
+• **Deployment** (Gradio, Streamlit, Hugging Face) 
+• **Augmentation** (Albumentations)
 
 ---
 
