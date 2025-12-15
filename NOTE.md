@@ -1,172 +1,236 @@
-# 5.13. Applying Blur filters: Average, Gaussian, Median
+# 5.12. Image Filters & Kernel
 
-Trong xử lý ảnh, **Blurring (Làm mờ)** hay **Smoothing** là kỹ thuật được sử dụng để giảm nhiễu (noise), loại bỏ các chi tiết thừa hoặc làm mịn ảnh. Bản chất của nó là sử dụng một cửa sổ trượt (Kernel) để tính toán lại giá trị pixel dựa trên các pixel lân cận.
+Tài liệu này giải thích cơ chế cốt lõi của việc trích xuất đặc trưng (feature extraction) trong xử lý ảnh.
 
-## 1\. Dữ liệu mẫu dùng để tính toán (Toán học)
+## 1. Định nghĩa và Cơ chế Hoạt động
 
-Để so sánh 3 phương pháp, ta xét một ma trận ảnh **$7 \times 7$** có nền màu tối (giá trị **10**) và bị dính một điểm **nhiễu muối tiêu (cực sáng)** ở tâm (giá trị **200**).
+### A. Các thuật ngữ cốt lõi
 
-**Input Image ($7 \times 7$):**
+-   **Kernel:** (Còn được gọi là **Convolution Matrix** hoặc **Mask**). Bản chất là một ma trận vuông nhỏ (thường là số lẻ như $3 \times 3$, $5 \times 5$...) chứa các hệ số quyết định tính chất xử lý.
+
+*   **Filtering & Convolution:**
+    -   **Filtering (Lọc ảnh):** Là khái niệm chung chỉ quá trình biến đổi ảnh bằng cách sử dụng Kernel.
+    -   **Convolution (Tích chập):** Là tên gọi kỹ thuật của phép toán trượt Kernel qua từng pixel của ảnh gốc để tính toán giá trị mới. Trong ngữ cảnh xử lý ảnh, hai thuật ngữ này thường gắn liền với nhau: thực hiện Filter chính là thực hiện phép Convolution.
+
+### B. Quy trình hoạt động (Cơ chế trượt - Sliding Mechanism)
+
+Quá trình Convolution diễn ra theo các bước lặp đi lặp lại như sau:
+
+1.  **Alignment (Căn chỉnh):** Đặt tâm của Kernel trùng với pixel đang xét trên ảnh gốc ($P_{x,y}$).
+2.  **Element-wise Multiplication (Nhân từng phần tử):** Nhân giá trị của từng ô trong Kernel với giá trị pixel tương ứng nằm đè bên dưới nó.
+3.  **Summation (Tính tổng):** Cộng tất cả các kết quả phép nhân lại với nhau.
+4.  **Assignment (Gán giá trị):** Lấy kết quả tổng đó gán cho vị trí pixel ($P_{x,y}$) trên ảnh mới (Feature Map).
+5.  **Sliding (Trượt):** Dịch chuyển Kernel sang pixel kế tiếp và lặp lại cho đến hết ảnh.
+
+### C. Ví dụ minh họa chi tiết
+
+Xét bài toán tìm cạnh ngang trên ảnh đầu vào $4 \times 5$ với Kernel $3 \times 3$.
+
+**1. Dữ liệu đầu vào (Input Image $4 \times 5$):**
 
 $$
 \begin{bmatrix}
-10 & 10 & 10 & 10 & 10 & 10 & 10 \\
-10 & 10 & 10 & 10 & 10 & 10 & 10 \\
-10 & 10 & 10 & 10 & 10 & 10 & 10 \\
-10 & 10 & 10 & \mathbf{200} & 10 & 10 & 10 \\
-10 & 10 & 10 & 10 & 10 & 10 & 10 \\
-10 & 10 & 10 & 10 & 10 & 10 & 10 \\
-10 & 10 & 10 & 10 & 10 & 10 & 10
+50 & 50 & 50 & 100 & 100 \\
+150 & 150 & 150 & 80 & 80 \\
+250 & 250 & 250 & 200 & 200 \\
+100 & 110 & 110 & 110 & 110
 \end{bmatrix}
 $$
 
-Chúng ta sẽ tính toán cho vùng **$3 \times 3$ tại tâm** (nơi chứa điểm nhiễu 200) và một vùng **$3 \times 3$ ở góc** (nơi chỉ toàn số 10).
+**2. Kernel (Bộ lọc cạnh ngang):**
 
------
+$$
+\begin{bmatrix}
+-1 & -1 & -1 \\
+0 & 0 & 0 \\
+1 & 1 & 1
+\end{bmatrix}
+$$
 
-## 2\. Average Filtering (Làm mờ trung bình)
+**3. Xác định kích thước Output:**
 
-### A. Bản chất & Cơ chế
+$$Output = (Input - Kernel + 1) = (4-3+1) \times (5-3+1) = \mathbf{2 \times 3}$$
+Ma trận kết quả sẽ có 2 hàng và 3 cột. Chúng ta sẽ tính toán giá trị cho từng ô:
 
-  * **Loại:** Bộ lọc Tuyến tính (Linear Filter).
-  * **Cơ chế:** Tính trung bình cộng của tất cả các pixel nằm trong Kernel. Mọi pixel có vai trò ngang nhau.
-  * **Kernel chuẩn ($3 \times 3$):**
-    $$
-    K = \frac{1}{9} \begin{bmatrix}
-    1 & 1 & 1 \\
-    1 & 1 & 1 \\
-    1 & 1 & 1
-    \end{bmatrix}
-    $$
+#### HÀNG 1 (Row 0)
 
-### B. Tính toán minh họa
+-   **Vị trí (0,0):** Quét cột 0, 1, 2 của hàng 0, 1, 2 Input.
 
-**Trường hợp 1: Tại vùng nhiễu (Tâm 200)**
+    -   Hàng trên: $(50 \times -1) + (50 \times -1) + (50 \times -1) = -150$
+    -   Hàng giữa: $(150 \times 0) + \dots = 0$
+    -   Hàng dưới: $(250 \times 1) + (250 \times 1) + (250 \times 1) = 750$
+    -   **Tổng: $-150 + 0 + 750 = \mathbf{600}$**
 
-  * Tổng giá trị: $(10 \times 8 \text{ ô nền}) + 200 = 80 + 200 = 280$.
-  * Kết quả: $280 / 9 \approx \mathbf{31}$.
-      * *Nhận xét:* Nhiễu giảm từ 200 xuống 31, nhưng bị "loang" ra xung quanh.
+-   **Vị trí (0,1):** Trượt sang phải 1 ô (Cột 1, 2, 3).
 
-**Trường hợp 2: Tại vùng nền (Toàn số 10)**
+    -   Hàng trên: $(50 \times -1) + (50 \times -1) + (100 \times -1) = -200$
+    -   Hàng giữa: $0$
+    -   Hàng dưới: $(250 \times 1) + (250 \times 1) + (200 \times 1) = 700$
+    -   **Tổng: $-200 + 0 + 700 = \mathbf{500}$**
 
-  * Tổng giá trị: $10 + 10 + \dots + 10 = 10 \times 9 = 90$.
-  * Kết quả: $90 / 9 = \mathbf{10}$.
-      * *Giải thích:* Vì tất cả pixel đều bằng nhau, trung bình cộng của chúng chính là giá trị đó. Ảnh nền không bị thay đổi.
+-   **Vị trí (0,2):** Trượt sang phải tiếp (Cột 2, 3, 4).
+    -   Hàng trên: $(50 \times -1) + (100 \times -1) + (100 \times -1) = -250$
+    -   Hàng giữa: $0$
+    -   Hàng dưới: $(250 \times 1) + (200 \times 1) + (200 \times 1) = 650$
+    -   **Tổng: $-250 + 0 + 650 = \mathbf{400}$**
 
-### C. Code OpenCV & Ứng dụng
+#### HÀNG 2 (Row 1) - Kernel trượt xuống một dòng
 
-  * **Hàm:** `cv2.blur(src, ksize)`
-  * **Ưu điểm:** Nhanh, đơn giản.
-  * **Nhược điểm:** Làm nhòe ảnh rất mạnh, mất chi tiết cạnh.
+-   **Vị trí (1,0):** Quét cột 0, 1, 2 của hàng 1, 2, 3 Input.
 
-<!-- end list -->
+    -   Hàng trên (Input Row 1): $(150 \times -1) + (150 \times -1) + (150 \times -1) = -450$
+    -   Hàng giữa (Input Row 2): $0$
+    -   Hàng dưới (Input Row 3): $(100 \times 1) + (110 \times 1) + (110 \times 1) = 320$
+    -   **Tổng: $-450 + 0 + 320 = \mathbf{-130}$**
 
-```python
-# Làm mờ với kernel 5x5
-avg_blur = cv2.blur(image, (5, 5))
-```
+-   **Vị trí (1,1):** Trượt sang phải (Cột 1, 2, 3).
 
------
+    -   Hàng trên: $(150 \times -1) + (150 \times -1) + (80 \times -1) = -380$
+    -   Hàng giữa: $0$
+    -   Hàng dưới: $(110 \times 1) + (110 \times 1) + (110 \times 1) = 330$
+    -   **Tổng: $-380 + 0 + 330 = \mathbf{-50}$**
 
-## 3\. Gaussian Filtering (Làm mờ Gauss)
+-   **Vị trí (1,2):** Trượt sang phải (Cột 2, 3, 4).
+    -   Hàng trên: $(150 \times -1) + (80 \times -1) + (80 \times -1) = -310$
+    -   Hàng giữa: $0$
+    -   Hàng dưới: $(110 \times 1) + (110 \times 1) + (110 \times 1) = 330$
+    -   **Tổng: $-310 + 0 + 330 = \mathbf{20}$**
 
-### A. Bản chất & Cơ chế
+**4. Kết quả cuối cùng (Feature Map):**
 
-  * **Loại:** Bộ lọc Tuyến tính (Linear Filter).
-  * **Cơ chế:** Tính trung bình cộng có trọng số (Weighted Average). Pixel ở gần tâm có trọng số cao, xa tâm trọng số thấp (theo hình quả chuông).
-  * **Kernel xấp xỉ ($3 \times 3$):**
-    $$
-    K = \frac{1}{16} \begin{bmatrix}
-    1 & 2 & 1 \\
-    2 & \mathbf{4} & 2 \\
-    1 & 2 & 1
-    \end{bmatrix}
-    $$
+$$
+\text{Output} = \begin{bmatrix}
+600 & 500 & 400 \\
+-130 & -50 & 20
+\end{bmatrix}
+$$
 
-### B. Tính toán minh họa
+_Nhận xét:_ Hàng đầu tiên có giá trị dương rất lớn (600, 500, 400) cho thấy vùng ảnh phía trên có cạnh ngang rõ rệt (chuyển từ tối sang sáng hoặc ngược lại). Hàng thứ hai giá trị nhỏ (-130, -50, 20) cho thấy cạnh ngang ở vùng dưới yếu hơn hoặc không rõ ràng.
 
-**Trường hợp 1: Tại vùng nhiễu (Tâm 200)**
+---
 
-  * Tâm (nhân 4): $200 \times 4 = 800$.
-  * Xung quanh (nhân 1 hoặc 2): Tổng trọng số xung quanh là 12. Giá trị là $10 \times 12 = 120$.
-  * Tổng: $800 + 120 = 920$.
-  * Kết quả: $920 / 16 = 57.5 \approx \mathbf{58}$.
-      * *Nhận xét:* Giá trị cao hơn Average (58 \> 31) vì nó ưu tiên giữ lại giá trị tâm. Ảnh mờ tự nhiên hơn.
+## 2. Các loại Kernel phổ biến trong OpenCV
 
-**Trường hợp 2: Tại vùng nền (Toàn số 10)**
+Dưới đây là bảng tổng hợp các "khuôn mẫu" thường dùng nhất:
 
-  * Tính toán: $(10 \times 1) + (10 \times 2) + \dots + (10 \times 4) + \dots = 10 \times (\text{Tổng trọng số})$.
-  * Tổng trọng số của Kernel là 16.
-  * Kết quả: $(10 \times 16) / 16 = \mathbf{10}$.
-      * *Giải thích:* Tương tự như Average, trên một vùng phẳng màu, Gaussian không làm thay đổi giá trị màu.
+| Loại Filter       | Mục đích                           | Đặc điểm Kernel                                    | Hàm OpenCV           |
+| :---------------- | :--------------------------------- | :------------------------------------------------- | :------------------- |
+| **Average Blur**  | Làm mờ, giảm nhiễu đơn giản.       | Tất cả hệ số đều bằng nhau ($1/n$).                | `cv2.blur()`         |
+| **Gaussian Blur** | Làm mờ tự nhiên, giữ cạnh tốt hơn. | Hệ số ở tâm lớn nhất, giảm dần ra xa.              | `cv2.GaussianBlur()` |
+| **Sharpening**    | Làm nét ảnh, tăng chi tiết.        | Tâm dương rất lớn, xung quanh là số âm.            | `cv2.filter2D()`     |
+| **Sobel (X/Y)**   | Phát hiện cạnh (ngang/dọc).        | Một bên âm, một bên dương, giữa là 0.              | `cv2.Sobel()`        |
+| **Laplacian**     | Phát hiện cạnh theo mọi hướng.     | Tâm dương cực lớn, xung quanh âm (hoặc ngược lại). | `cv2.Laplacian()`    |
 
-### C. Code OpenCV & Ứng dụng
+---
 
-  * **Hàm:** `cv2.GaussianBlur(src, ksize, sigmaX)`
-  * **Ứu điểm:** Mờ tự nhiên, giữ cạnh tốt hơn Average.
-  * **Trường hợp dùng tốt nhất:** Giảm nhiễu Gaussian (nhiễu hạt mịn), làm mịn da, tiền xử lý cho hầu hết các bài toán AI.
+## 3. Bản chất toán học: Tại sao phải nhân và cộng tổng?
 
-<!-- end list -->
+Hãy hình dung Kernel giống như một **"khuôn mẫu" (template)** của một đặc điểm đang cần tìm kiếm (ví dụ: một cái cạnh ngang, một cái cạnh dọc, hay một chấm tròn).
 
-```python
-# Kernel 5x5, sigma=0 (tự tính toán)
-gauss_blur = cv2.GaussianBlur(image, (5, 5), 0)
-```
+-   **Phép nhân ($Kernel \times Pixel$):** Để kiểm tra xem pixel tại vị trí đó có "ăn khớp" với khuôn mẫu hay không.
+-   **Phép tổng ($\sum$):** Để gom toàn bộ kết quả so khớp lại thành một con số duy nhất đại diện cho cả vùng đó.
 
------
+**Ý nghĩa của giá trị kết quả:**
 
-## 4\. Median Filtering (Làm mờ Trung vị)
+-   **Giá trị càng lớn (Big Value):** Nghĩa là vùng ảnh đó **RẤT GIỐNG** với đặc điểm mà Kernel đang tìm kiếm.
+-   **Giá trị bằng 0 (hoặc gần 0):** Nghĩa là vùng ảnh đó **KHÔNG LIÊN QUAN** gì đến đặc điểm đang tìm, hoặc là một vùng phẳng lì (flat).
 
-### A. Bản chất & Cơ chế
+> **Ví dụ thực tế:** Quy trình chấm điểm thi trắc nghiệm.
+>
+> -   **Đáp án đúng (Kernel) là:** A, B, C.
+> -   **Bài làm 1 (Ảnh):** A, B, C $\rightarrow$ Khớp hoàn toàn $\rightarrow$ **Điểm cao (Giá trị lớn)**.
+> -   **Bài làm 2 (Ảnh):** D, E, F $\rightarrow$ Không khớp $\rightarrow$ **0 điểm**.
 
-  * **Loại:** Bộ lọc Phi tuyến tính (Non-linear Filter).
-  * **Cơ chế:** KHÔNG dùng phép cộng nhân. Gom tất cả pixel trong cửa sổ, **SẮP XẾP (Sort)** từ nhỏ đến lớn, và chọn số nằm chính giữa (**Median**).
+---
 
-### B. Tính toán minh họa
+## 4. Giải mã Logic Phát hiện Cạnh (Edge Detection)
 
-**Trường hợp 1: Tại vùng nhiễu (Tâm 200)**
+Ví dụ về **Cạnh Dọc (Vertical Edge)** giúp làm rõ cơ chế này.
 
-  * Danh sách pixel trong vùng $3 \times 3$: `[10, 10, 10, 10, 200, 10, 10, 10, 10]`.
-  * Sắp xếp: `[10, 10, 10, 10,` **`10`** `, 10, 10, 10, 200]`.
-  * Kết quả (Số ở giữa): **10**.
-      * *Nhận xét:* **Nhiễu biến mất hoàn toàn\!** Giá trị quay về đúng 10 như nền. Đây là sức mạnh tuyệt đối của Median.
+**Kernel tìm Cạnh Dọc (Prewitt/Sobel đơn giản):**
+Cấu trúc: Bên Trái là số âm, Bên Phải là số dương.
 
-**Trường hợp 2: Tại vùng nền (Toàn số 10)**
+$$
+K = \begin{bmatrix}
+-1 & 0 & 1 \\
+-1 & 0 & 1 \\
+-1 & 0 & 1
+\end{bmatrix}
+$$
 
-  * Danh sách: `[10, 10, 10, 10, 10, 10, 10, 10, 10]`.
-  * Sắp xếp: Vẫn y nguyên.
-  * Kết quả: **10**.
+_(Logic: Lấy Phải trừ Trái. Nếu khác nhau $\rightarrow$ Có cạnh dọc)_
 
-### C. Code OpenCV & Ứng dụng
+### Ví dụ 1: Vùng ảnh CÓ cạnh dọc (Trái sáng - Phải tối)
 
-  * **Hàm:** `cv2.medianBlur(src, ksize)` (ksize phải là số lẻ).
-  * **Ưu điểm:** Loại bỏ hoàn toàn nhiễu muối tiêu mà không làm mờ cạnh của vật thể lớn.
-  * **Trường hợp dùng tốt nhất:** Ảnh bị nhiễu lấm tấm đen trắng, ảnh scan tài liệu cũ.
+Giả sử vùng ảnh: Cột trái là 200 (Sáng), Cột phải là 0 (Đen).
 
-<!-- end list -->
+$$
+\text{Image} = \begin{bmatrix}
+200 & 100 & 0 \\
+200 & 100 & 0 \\
+200 & 100 & 0
+\end{bmatrix}
+$$
 
-```python
-# ksize là số nguyên (ví dụ 5), tương đương cửa sổ 5x5
-median_blur = cv2.medianBlur(image, 5)
-```
+**Phép tính Convolution:**
 
------
+-   Cột 1 (Image) nhân Cột 1 (Kernel): $200 \times (-1) + 200 \times (-1) + 200 \times (-1) = \mathbf{-600}$
+-   Cột 2 (Image) nhân Cột 2 (Kernel): $100 \times 0 + \dots = \mathbf{0}$
+-   Cột 3 (Image) nhân Cột 3 (Kernel): $0 \times 1 + \dots = \mathbf{0}$
 
-## 5\. Tổng kết so sánh
+**Tổng:** $-600 + 0 + 0 = \mathbf{-600}$ (Lấy trị tuyệt đối là 600 - Big Value).
+$\rightarrow$ **Kết luận:** Máy tính phát hiện **CÓ CẠNH DỌC**.
 
-| Đặc điểm | Average Filter | Gaussian Filter | Median Filter |
-| :--- | :--- | :--- | :--- |
-| **Bản chất toán** | Trung bình cộng | Trung bình có trọng số | Sắp xếp & Chọn số giữa |
-| **Xử lý nhiễu 200** | $\downarrow$ 31 (Nhiễu bị loang rộng) | $\downarrow$ 58 (Nhiễu dịu đi, mềm mại) | **$\downarrow$ 10 (Nhiễu biến mất)** |
-| **Độ giữ nét** | Kém nhất (Mờ đều) | Trung bình (Mờ tự nhiên) | Tốt nhất (Giữ cạnh sắc nét) |
-| **Dùng khi nào?** | Ít dùng, cần tốc độ cực cao. | **Mặc định** cho hầu hết tác vụ. | Chuyên trị **Nhiễu muối tiêu**. |
+### Ví dụ 2: Vùng ảnh PHẲNG (Không có cạnh)
 
-### Tại sao vùng toàn số 10 thì kết quả vẫn là 10?
+Giả sử vùng ảnh toàn màu xám (100).
 
-Dù bạn dùng phương pháp nào:
+$$
+\text{Image} = \begin{bmatrix}
+100 & 100 & 100 \\
+100 & 100 & 100 \\
+100 & 100 & 100
+\end{bmatrix}
+$$
 
-1.  **Average:** $(10+10+...+10)/9 = 90/9 = 10$.
-2.  **Gaussian:** Tổng trọng số luôn được chuẩn hóa về 1. $(10 \times \text{Weight}_1 + 10 \times \text{Weight}_2...) = 10 \times (\sum \text{Weights}) = 10 \times 1 = 10$.
-3.  **Median:** Sắp xếp một dãy toàn số 10 thì số ở giữa chắc chắn là 10.
+**Phép tính Convolution:**
 
-$\rightarrow$ **Kết luận:** Các bộ lọc làm mờ (Blur) chỉ thay đổi giá trị ở những nơi **có sự chênh lệch màu sắc** (như nhiễu hoặc cạnh vật thể). Ở những vùng phẳng (flat region) đồng màu, chúng không làm thay đổi ảnh.
+-   Cột 1: $100 \times (-1) \times 3 = \mathbf{-300}$
+-   Cột 2: $100 \times 0 = \mathbf{0}$
+-   Cột 3: $100 \times 1 \times 3 = \mathbf{300}$
+
+**Tổng:** $-300 + 0 + 300 = \mathbf{0}$.
+$\rightarrow$ **Kết luận:** Hai bên triệt tiêu nhau. Máy tính báo **KHÔNG CÓ CẠNH**.
+
+---
+
+## 5. Kết quả đầu ra: Trắng Đen hay Xám?
+
+Quá trình Edge Detection chia làm 2 giai đoạn xử lý riêng biệt:
+
+### Giai đoạn 1: Feature Map (Ảnh Xám) - Output của Kernel
+
+Sau khi thực hiện phép nhân và cộng tổng ở trên, kết quả thu được là một ma trận các con số thực (ví dụ: -600, 0, 450...). Khi hiển thị dữ liệu này lên màn hình, nó sẽ là **Ảnh Xám (Grayscale)**.
+
+-   **Ý nghĩa:** Độ sáng của pixel đại diện cho **ĐỘ MẠNH (Magnitude)** của cạnh.
+    -   Sáng rực (Trắng): Cạnh rất sắc nét, độ tương phản cao.
+    -   Xám mờ: Cạnh yếu, mờ nhạt.
+    -   Đen: Không có cạnh (vùng phẳng).
+
+### Giai đoạn 2: Binary Map (Ảnh Nhị Phân) - Sau khi Threshold
+
+Để sử dụng được dữ liệu cho các thuật toán sau đó, máy tính cần ra quyết định dứt khoát: "Cạnh" hay "Không phải cạnh". Bước này áp dụng một **Ngưỡng (Threshold)**, ví dụ là 100.
+
+-   Nếu Giá trị > 100 $\rightarrow$ Gán thành 255 (**TRẮNG**).
+-   Nếu Giá trị < 100 $\rightarrow$ Gán thành 0 (**ĐEN**).
+-   **Ý nghĩa:** Tạo ra ranh giới rõ ràng để tách vật thể ra khỏi nền.
+
+### Ứng dụng thực tế
+
+1.  **Xe tự lái (Lane Detection):**
+    -   Dùng Kernel cạnh xiên/dọc để tìm vạch kẻ đường (ra ảnh xám).
+    -   Dùng Threshold để lọc bỏ mặt đường nhựa, chỉ giữ lại vạch sơn trắng (ra ảnh nhị phân) để xe đi đúng làn.
+2.  **Quét mã vạch (Barcode Scanner):**
+    -   Mã vạch là chuỗi các cạnh dọc đen/trắng liên tiếp. Kernel cạnh dọc giúp máy đọc chính xác khoảng cách giữa các vạch này.
+3.  **Y tế (X-Ray):**
+    -   Dùng Kernel làm nét (Sharpening) để làm nổi bật các vết rạn xương nhỏ (cạnh yếu) mà mắt thường khó thấy trên phim chụp.
